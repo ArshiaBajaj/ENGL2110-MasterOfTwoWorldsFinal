@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master of Two Worlds</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    font-family: Georgia, 'Times New Roman', serif;
+    background: linear-gradient(to bottom, #6CA6CD, #87CEEB, #d6ebf5);
+    color: #222;
+    overflow-x: hidden;
+  }
+
+  #pw-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(to bottom, #6CA6CD, #87CEEB, #d6ebf5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .portrait-circle {
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    border: 5px solid #b8960c;
+    background: #c4aa5a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.8rem;
+    margin-bottom: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+  }
+
+  #pw-screen h2 {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+    color: #1a1a2e;
+  }
+
+  #pw-screen .hint {
+    color: #555;
+    font-style: italic;
+    margin-bottom: 18px;
+    font-size: 0.95rem;
+  }
+
+  #pw-screen input {
+    padding: 10px 18px;
+    font-size: 1rem;
+    border: 2px solid #b8960c;
+    border-radius: 6px;
+    text-align: center;
+    font-family: Georgia, serif;
+    width: 240px;
+  }
+
+  #pw-screen input:focus { outline: none; border-color: #7a6200; }
+
+  .btn-gold {
+    margin-top: 12px;
+    padding: 10px 30px;
+    font-size: 1rem;
+    background: #b8960c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+  }
+
+  .btn-gold:hover { background: #9a7d08; }
+
+  .pw-err {
+    color: #b00;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    min-height: 20px;
+  }
+
+  #game { display: none; }
+
+  #phase1 { min-height: 100vh; display: flex; flex-direction: column; }
+
+  .top-bar {
+    text-align: center;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.55);
+    color: #eee;
+  }
+
+  .top-bar h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .top-bar p { font-size: 0.9rem; font-style: italic; opacity: 0.8; }
+
+  .split {
+    display: flex;
+    flex: 1;
+    min-height: 75vh;
+  }
+
+  .side-nature {
+    flex: 1;
+    background: linear-gradient(to bottom, #2b5a14, #4a8c28, #6db33f);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .side-society {
+    flex: 1;
+    background: linear-gradient(to bottom, #1a1a2e, #2e2e50, #40406a);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .side-label {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+
+  .side-nature .side-label { color: #d4f0c0; }
+  .side-society .side-label { color: #c9a84c; }
+
+  .side-desc {
+    font-size: 0.8rem;
+    font-style: italic;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .side-nature .side-desc { color: #a8d48a; }
+  .side-society .side-desc { color: #8888aa; }
+
+  .drop-area {
+    flex: 1;
+    width: 100%;
+    max-width: 280px;
+    border: 2px dashed rgba(255,255,255,0.25);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    align-content: flex-start;
+    justify-content: center;
+    min-height: 180px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+
+  .drop-area.over {
+    border-color: #c9a84c;
+    background: rgba(201,168,76,0.12);
+  }
+
+  .words-middle {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    align-items: center;
+    pointer-events: none;
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+
+  .chip {
+    padding: 7px 15px;
+    background: #b8960c;
+    color: #1a1a2e;
+    border-radius: 18px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: grab;
+    pointer-events: all;
+    user-select: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: transform 0.15s;
+  }
+
+  .chip:hover { transform: scale(1.06); }
+  .chip.dragging { opacity: 0.4; }
+  .chip.picked { outline: 2px solid #fff; }
+
+  .placed {
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .placed.in-nature {
+    background: rgba(255,255,255,0.18);
+    color: #d4f0c0;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .placed.in-society {
+    background: rgba(201,168,76,0.18);
+    color: #c9a84c;
+    border: 1px solid rgba(201,168,76,0.25);
+  }
+
+  .bottom-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    padding: 12px 35px;
+    font-size: 1rem;
+    font-family: Georgia, serif;
+    background: #b8960c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+
+  .bottom-btn:hover { background: #9a7d08; }
+
+  .toast {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    padding: 10px 22px;
+    border-radius: 7px;
+    font-size: 0.95rem;
+    display: none;
+    text-align: center;
+    max-width: 88%;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    line-height: 1.5;
+  }
+
+  .toast.bad { background: #b00; color: white; }
+  .toast.good { background: #2a6e2a; color: white; }
+
+  #phase2 {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #1a1a2e, #2c1e10, #3a2515);
+    color: #ddd0bb;
+    padding: 25px 18px;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cipher-wrap {
+    max-width: 650px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .cipher-wrap h1 {
+    color: #c9a84c;
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+
+  .cipher-wrap .sub {
+    font-style: italic;
+    color: #8a7a60;
+    margin-bottom: 22px;
+    font-size: 0.95rem;
+  }
+
+  .enc-box {
+    background: rgba(0,0,0,0.35);
+    border: 2px solid #b8960c;
+    border-radius: 10px;
+    padding: 22px;
+    margin: 16px 0;
+  }
+
+  .enc-text {
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: #c9a84c;
+    line-height: 2;
+    word-break: break-word;
+  }
+
+  .info-text {
+    margin: 16px 0;
+    line-height: 1.6;
+    font-size: 0.92rem;
+  }
+
+  .given-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 12px 0;
+  }
+
+  .lpair {
+    background: rgba(201,168,76,0.12);
+    border: 1px solid #b8960c;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+  }
+
+  .lpair .c { color: #c9a84c; font-weight: bold; }
+  .lpair .p { color: #5a9e3a; font-weight: bold; }
+
+  .sub-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    margin: 16px 0;
+  }
+
+  .sub-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .sub-cell .lbl {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #c9a84c;
+    font-weight: bold;
+  }
+
+  .sub-cell input {
+    width: 30px; height: 30px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    font-weight: bold;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.4);
+    color: #5a9e3a;
+    text-transform: uppercase;
+  }
+
+  .sub-cell input:focus { outline: none; border-color: #b8960c; }
+  .sub-cell input.locked { background: rgba(201,168,76,0.18); color: #c9a84c; border-color: #b8960c; }
+
+  .preview {
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    color: #5a9e3a;
+    letter-spacing: 1px;
+    line-height: 2;
+    margin: 16px 0;
+    min-height: 50px;
+    word-break: break-word;
+  }
+
+  .hint-btn {
+    background: none;
+    border: 1px solid #8a7a60;
+    color: #8a7a60;
+    padding: 6px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Georgia, serif;
+    font-size: 0.85rem;
+    margin-top: 10px;
+  }
+
+  .hint-btn:hover { background: rgba(138,122,96,0.12); }
+
+  .c-feedback {
+    margin-top: 12px;
+    font-weight: bold;
+    min-height: 22px;
+    font-size: 0.95rem;
+  }
+
+  .c-feedback.no { color: #e07070; }
+  .c-feedback.yes { color: #5a9e3a; }
+
+  #phase3 {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #6CA6CD, #87CEEB, #d6ebf5);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 25px 18px;
+    text-align: center;
+  }
+
+  .riddle-card {
+    background: rgba(255,255,255,0.88);
+    border: 3px solid #b8960c;
+    border-radius: 14px;
+    padding: 35px 25px;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.12);
+  }
+
+  .riddle-card h1 {
+    color: #1a1a2e;
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+
+  .riddle-q {
+    font-style: italic;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #444;
+    margin-bottom: 20px;
+    padding: 18px;
+    background: linear-gradient(135deg, #f2e4c4, #e5d3a0);
+    border-radius: 8px;
+    border-left: 4px solid #b8960c;
+  }
+
+  .riddle-card input {
+    padding: 12px 18px;
+    font-size: 1.1rem;
+    font-family: Georgia, serif;
+    border: 2px solid #b8960c;
+    border-radius: 6px;
+    text-align: center;
+    width: 250px;
+  }
+
+  .riddle-card input:focus { outline: none; border-color: #7a6200; }
+
+  .r-feedback {
+    margin-top: 12px;
+    font-weight: bold;
+    min-height: 22px;
+  }
+
+  .r-feedback.no { color: #b00; }
+
+  #win {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #1b5e20, #2e7d32, #43a047);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 25px 18px;
+    text-align: center;
+    color: white;
+  }
+
+  .win-card {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    padding: 35px 25px;
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .win-card h1 { font-size: 1.7rem; margin-bottom: 12px; }
+  .win-card p { font-size: 1rem; line-height: 1.6; margin-bottom: 8px; }
+
+  .big-word {
+    font-size: 2.5rem;
+    font-weight: bold;
+    letter-spacing: 8px;
+    margin: 20px 0;
+    color: #c9a84c;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(25px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fadein { animation: fadeUp 0.7s ease forwards; }
+
+  @media (max-width: 680px) {
+    .split { flex-direction: column; }
+    .words-middle {
+      position: relative;
+      top: auto; left: auto;
+      transform: none;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 12px;
+      background: rgba(0,0,0,0.65);
+    }
+    .side-nature, .side-society { min-height: 35vh; }
+    .drop-area { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="pw-screen">
+  <div class="portrait-circle">🔒</div>
+  <h2>Master of Two Worlds</h2>
+  <p class="hint">enter the secret word from the last quest to continue</p>
+  <input type="text" id="pw" placeholder="password..." autocomplete="off"
+    onkeypress="if(event.key==='Enter')tryPw()">
+  <button class="btn-gold" onclick="tryPw()">enter</button>
+  <p class="pw-err" id="pw-err"></p>
+</div>
+
+<div id="game">
+  <div id="phase1">
+    <div class="top-bar">
+      <h1>Phase 1 — The Two Worlds</h1>
+      <p>drag each word to the world it belongs to. click a placed word to remove it. careful — some are tricky</p>
+    </div>
+    <div class="split">
+      <div class="side-nature">
+        <div class="side-label">🌿 Nature</div>
+        <div class="side-desc">before society got to us</div>
+        <div class="drop-area" id="nzone"
+          ondragover="dOver(event)" ondragleave="dLeave(event)" ondrop="dDrop(event,'nature')"></div>
+      </div>
+      <div class="side-society">
+        <div class="side-label">⛓️ Society</div>
+        <div class="side-desc">what civilization does to people</div>
+        <div class="drop-area" id="szone"
+          ondragover="dOver(event)" ondragleave="dLeave(event)" ondrop="dDrop(event,'society')"></div>
+      </div>
+    </div>
+    <div class="words-middle" id="wordbox"></div>
+    <button class="bottom-btn" id="p1btn" onclick="checkP1()">check answers</button>
+    <div class="toast" id="p1toast"></div>
+  </div>
+
+  <div id="phase2">
+    <div class="cipher-wrap fadein">
+      <div class="portrait-circle" style="margin:0 auto 16px;border-color:#b8960c;background:#2c1e10;color:#c9a84c;">🌉</div>
+      <h1>Phase 2 — The Bridge</h1>
+      <p class="sub">decode the cipher to cross between the two worlds</p>
+      <div class="enc-box">
+        <p style="color:#8a7a60;margin-bottom:8px;font-size:0.85rem;">ENCRYPTED:</p>
+        <div class="enc-text" id="enc-text"></div>
+      </div>
+      <div class="info-text">
+        <p>each letter got swapped with a different one. we gave you a few to start — figure out the rest</p>
+      </div>
+      <p style="color:#c9a84c;font-weight:bold;margin-bottom:8px;font-size:0.9rem;">letters we're giving you:</p>
+      <div class="given-row" id="given-row"></div>
+      <p style="color:#8a7a60;margin:16px 0 8px;font-size:0.85rem;">fill in the key:</p>
+      <div class="sub-grid" id="sgrid"></div>
+      <p style="color:#8a7a60;margin:16px 0 8px;font-size:0.85rem;">your decoded message:</p>
+      <div class="preview" id="preview">...</div>
+      <button class="btn-gold" onclick="checkC()">decode</button>
+      <br>
+      <button class="hint-btn" id="hbtn" onclick="giveH()">💡 give me another letter</button>
+      <p style="color:#8a7a60;font-size:0.78rem;margin-top:4px;" id="hleft"></p>
+      <div class="c-feedback" id="cfb"></div>
+    </div>
+  </div>
+
+  <div id="phase3">
+    <div class="riddle-card fadein">
+      <div class="portrait-circle" style="margin:0 auto 16px;font-size:2rem;">🧩</div>
+      <h1>Phase 3 — The Final Question</h1>
+      <div class="riddle-q">
+        Rousseau lived in two worlds — one where he was free and one where he was in chains. He mastered both by writing down his truth and refusing to give in to force.<br><br>
+        <strong>But where does Rousseau say man is actually free? Before society ever touched him, where did freedom exist?</strong><br><br>
+        hint: its not a place. its a state of being.
+      </div>
+      <input type="text" id="ranswer" placeholder="type your answer..."
+        onkeypress="if(event.key==='Enter')checkR()">
+      <br><br>
+      <button class="btn-gold" onclick="checkR()">submit</button>
+      <div class="r-feedback" id="rfb"></div>
+    </div>
+  </div>
+
+  <div id="win">
+    <div class="win-card fadein">
+      <h1>🌍 you mastered both worlds</h1>
+      <p>Rousseau understood freedom AND chains. he reconciled them by writing his truth — declaring who he really was to the world.</p>
+      <p style="font-style:italic;margin-top:12px;">"Man is born free, and everywhere he is in chains."</p>
+      <p style="margin-top:22px;">the password for the final quest is:</p>
+      <div class="big-word">NATURE</div>
+      <p>use it to unlock <strong>Freedom to Live</strong></p>
+    </div>
+  </div>
+</div>
+
+<script>
+var PW="Right";
+var WORDS=[
+  {t:"Freedom",w:"nature",q:"freedom is natural — society takes it away"},
+  {t:"Innocence",w:"nature",q:"innocence is what Rousseau lost when society judged him"},
+  {t:"Truth",w:"nature",q:"truth exists before society teaches us to lie"},
+  {t:"Compassion",w:"nature",q:"Rousseau said compassion is a natural instinct"},
+  {t:"Equality",w:"nature",q:"in nature no one rules over anyone else"},
+  {t:"Purity",w:"nature",q:"purity exists before society corrupts the soul"},
+  {t:"Chains",w:"society",q:"chains are made by society, not nature"},
+  {t:"Force",w:"society",q:"force is a tool of tyrants, not of nature"},
+  {t:"Oppression",w:"society",q:"oppression is born when society creates unequal power"},
+  {t:"Punishment",w:"society",q:"punishment without proof is society's cruelty — remember the comb"},
+  {t:"Obedience",w:"society",q:"forced obedience is society's demand"},
+  {t:"Authority",w:"society",q:"no man has natural authority over another — Rousseau Ch. 2"}
+];
+var QUOTE="Man is born free and everywhere he is in chains";
+var START_HINTS=3;
+var MAX_HINTS=4;
+var ANSWER="NATURE";
+
+function tryPw(){
+  if(document.getElementById('pw').value.trim().toUpperCase()===PW.toUpperCase()){
+    document.getElementById('pw-screen').style.display='none';
+    document.getElementById('game').style.display='block';
+    document.getElementById('phase1').style.display='flex';
+    initP1();
+  }else{
+    document.getElementById('pw-err').textContent='nope. try again';
+  }
+}
+
+var placed={};
+function initP1(){
+  var box=document.getElementById('wordbox');
+  box.innerHTML='';
+  placed={};
+  document.getElementById('nzone').innerHTML='';
+  document.getElementById('szone').innerHTML='';
+  var shuf=WORDS.slice().sort(function(){return Math.random()-0.5;});
+  shuf.forEach(function(w,i){
+    var c=document.createElement('div');
+    c.className='chip';
+    c.textContent=w.t;
+    c.draggable=true;
+    c.id='c'+i;
+    c.setAttribute('data-word',w.t);
+    c.addEventListener('dragstart',function(e){
+      e.dataTransfer.setData('text',w.t);
+      e.dataTransfer.setData('cid',c.id);
+      c.classList.add('dragging');
+    });
+    c.addEventListener('dragend',function(){c.classList.remove('dragging');});
+    c.addEventListener('click',function(){
+      if(c.getAttribute('data-done'))return;
+      var all=document.querySelectorAll('.chip.picked');
+      for(var x=0;x<all.length;x++){all[x].classList.remove('picked');all[x].style.outline='';}
+      c.classList.add('picked');
+      c.style.outline='2px solid #fff';
+    });
+    box.appendChild(c);
+  });
+  ['nzone','szone'].forEach(function(zid){
+    document.getElementById(zid).addEventListener('click',function(){
+      var sel=document.querySelector('.chip.picked');
+      if(sel){
+        var wt=sel.getAttribute('data-word');
+        var side=zid==='nzone'?'nature':'society';
+        placeW(wt,side,sel.id);
+        sel.classList.remove('picked');
+        sel.style.outline='';
+      }
+    });
+  });
+}
+
+function dOver(e){e.preventDefault();e.currentTarget.classList.add('over');}
+function dLeave(e){e.currentTarget.classList.remove('over');}
+function dDrop(e,side){
+  e.preventDefault();
+  e.currentTarget.classList.remove('over');
+  placeW(e.dataTransfer.getData('text'),side,e.dataTransfer.getData('cid'));
+}
+
+function placeW(wt,side,cid){
+  var chip=document.getElementById(cid);
+  if(chip){chip.style.display='none';chip.setAttribute('data-done','1');}
+  placed[wt]=side;
+  var zone=document.getElementById(side==='nature'?'nzone':'szone');
+  var p=document.createElement('div');
+  p.className='placed in-'+side;
+  p.textContent=wt;
+  p.setAttribute('data-word',wt);
+  p.setAttribute('data-cid',cid);
+  p.addEventListener('click',function(){
+    delete placed[wt];
+    p.remove();
+    if(chip){chip.style.display='';chip.setAttribute('data-done','');}
+  });
+  zone.appendChild(p);
+}
+
+function checkP1(){
+  var t=document.getElementById('p1toast');
+  if(Object.keys(placed).length<WORDS.length){
+    t.textContent='you still have '+(WORDS.length-Object.keys(placed).length)+' words left';
+    t.className='toast bad';
+    t.style.display='block';
+    setTimeout(function(){t.style.display='none';},2500);
+    return;
+  }
+  var wrong=null;
+  for(var i=0;i<WORDS.length;i++){
+    if(placed[WORDS[i].t]!==WORDS[i].w){wrong=WORDS[i];break;}
+  }
+  if(wrong){
+    t.innerHTML='✗ "'+wrong.t+'" is wrong — '+wrong.q;
+    t.className='toast bad';
+    t.style.display='block';
+    setTimeout(function(){t.style.display='none';},4500);
+    var all=document.querySelectorAll('.placed');
+    for(var j=0;j<all.length;j++){
+      if(all[j].getAttribute('data-word')===wrong.t){
+        var ch=document.getElementById(all[j].getAttribute('data-cid'));
+        if(ch){ch.style.display='';ch.setAttribute('data-done','');}
+        delete placed[wrong.t];
+        all[j].remove();
+      }
+    }
+  }else{
+    t.textContent='✓ nice — both worlds balanced. the bridge appears...';
+    t.className='toast good';
+    t.style.display='block';
+    setTimeout(function(){
+      t.style.display='none';
+      document.getElementById('phase1').style.display='none';
+      document.getElementById('p1btn').style.display='none';
+      document.getElementById('phase2').style.display='flex';
+      initC();
+      window.scrollTo(0,0);
+    },1800);
+  }
+}
+
+var cMap={},rMap={},given={},hUsed=0;
+
+function initC(){
+  var alpha='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  var sh=alpha.slice();
+  for(var i=sh.length-1;i>0;i--){
+    var j;
+    do{j=Math.floor(Math.random()*(i+1));}
+    while(sh[j]===alpha[i]||sh[i]===alpha[j]);
+    var tmp=sh[i];sh[i]=sh[j];sh[j]=tmp;
+  }
+  if(sh[0]===alpha[0]){var t2=sh[0];sh[0]=sh[1];sh[1]=t2;}
+  cMap={};rMap={};
+  for(var i=0;i<26;i++){cMap[alpha[i]]=sh[i];rMap[sh[i]]=alpha[i];}
+
+  var qSet={};
+  var qUp=QUOTE.toUpperCase().replace(/[^A-Z]/g,'');
+  for(var i=0;i<qUp.length;i++) qSet[qUp[i]]=true;
+  var maps=[];
+  for(var l in qSet) maps.push({p:l,c:cMap[l]});
+  maps.sort(function(){return Math.random()-0.5;});
+  given={};
+  for(var i=0;i<Math.min(START_HINTS,maps.length);i++) given[maps[i].c]=maps[i].p;
+
+  var enc='';
+  var qu=QUOTE.toUpperCase();
+  for(var i=0;i<qu.length;i++){
+    var ch=qu[i];
+    enc+=ch.match(/[A-Z]/)?cMap[ch]:ch;
+  }
+  document.getElementById('enc-text').textContent=enc;
+
+  var gr=document.getElementById('given-row');
+  gr.innerHTML='';
+  for(var c in given){
+    var d=document.createElement('div');
+    d.className='lpair';
+    d.innerHTML='<span class="c">'+c+'</span> → <span class="p">'+given[c]+'</span>';
+    gr.appendChild(d);
+  }
+
+  var usedSet={};
+  var encClean=enc.replace(/[^A-Z]/g,'');
+  for(var i=0;i<encClean.length;i++) usedSet[encClean[i]]=true;
+  var grid=document.getElementById('sgrid');
+  grid.innerHTML='';
+  var sorted=Object.keys(usedSet).sort();
+  sorted.forEach(function(cl){
+    var cell=document.createElement('div');
+    cell.className='sub-cell';
+    var lbl=document.createElement('div');
+    lbl.className='lbl';
+    lbl.textContent=cl;
+    var inp=document.createElement('input');
+    inp.maxLength=1;
+    inp.setAttribute('data-c',cl);
+    if(given[cl]){inp.value=given[cl];inp.className='locked';inp.readOnly=true;}
+    inp.addEventListener('input',updPrev);
+    cell.appendChild(lbl);
+    cell.appendChild(inp);
+    grid.appendChild(cell);
+  });
+
+  hUsed=0;
+  updHL();
+  updPrev();
+}
+
+function updPrev(){
+  var inps=document.querySelectorAll('#sgrid input');
+  var m={};
+  for(var i=0;i<inps.length;i++){
+    if(inps[i].value.trim()) m[inps[i].getAttribute('data-c')]=inps[i].value.trim().toUpperCase();
+  }
+  var enc=document.getElementById('enc-text').textContent;
+  var dec='';
+  for(var i=0;i<enc.length;i++){
+    var ch=enc[i];
+    if(ch.match(/[A-Z]/)) dec+=m[ch]||'_';
+    else dec+=ch;
+  }
+  document.getElementById('preview').textContent=dec;
+}
+
+function checkC(){
+  var inps=document.querySelectorAll('#sgrid input');
+  var m={};
+  for(var i=0;i<inps.length;i++){
+    if(inps[i].value.trim()) m[inps[i].getAttribute('data-c')]=inps[i].value.trim().toUpperCase();
+  }
+  var enc=document.getElementById('enc-text').textContent;
+  var dec='';
+  for(var i=0;i<enc.length;i++){
+    var ch=enc[i];
+    if(ch.match(/[A-Z]/)) dec+=m[ch]||'?';
+    else dec+=ch;
+  }
+  var fb=document.getElementById('cfb');
+  if(dec===QUOTE.toUpperCase()){
+    fb.textContent='✓ decoded. the bridge opens...';
+    fb.className='c-feedback yes';
+    setTimeout(function(){
+      document.getElementById('phase2').style.display='none';
+      document.getElementById('phase3').style.display='flex';
+      window.scrollTo(0,0);
+    },1500);
+  }else{
+    fb.textContent='✗ still garbled. keep going';
+    fb.className='c-feedback no';
+  }
+}
+
+function giveH(){
+  if(hUsed>=MAX_HINTS)return;
+  var inps=document.querySelectorAll('#sgrid input');
+  var open=[];
+  for(var i=0;i<inps.length;i++){if(!inps[i].readOnly)open.push(inps[i]);}
+  if(!open.length)return;
+  var pick=open[Math.floor(Math.random()*open.length)];
+  var cl=pick.getAttribute('data-c');
+  var pl=rMap[cl];
+  pick.value=pl;
+  pick.className='locked';
+  pick.readOnly=true;
+  given[cl]=pl;
+  var gr=document.getElementById('given-row');
+  var d=document.createElement('div');
+  d.className='lpair';
+  d.innerHTML='<span class="c">'+cl+'</span> → <span class="p">'+pl+'</span>';
+  gr.appendChild(d);
+  hUsed++;
+  updHL();
+  updPrev();
+}
+
+function updHL(){
+  var r=MAX_HINTS-hUsed;
+  document.getElementById('hleft').textContent=r+' hint'+(r!==1?'s':'')+' left';
+  if(r<=0)document.getElementById('hbtn').style.display='none';
+}
+
+function checkR(){
+  var v=document.getElementById('ranswer').value.trim().toUpperCase();
+  var fb=document.getElementById('rfb');
+  if(v===ANSWER){
+    fb.textContent='';
+    document.getElementById('phase3').style.display='none';
+    document.getElementById('win').style.display='flex';
+    window.scrollTo(0,0);
+  }else{
+    fb.textContent='✗ not quite. think about where man existed before society';
+    fb.className='r-feedback no';
+  }
+}
+</script>
+</body>
+</html>
